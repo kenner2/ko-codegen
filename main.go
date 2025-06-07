@@ -17,7 +17,6 @@ const (
 )
 
 func main() {
-	blow up
 	fmt.Println("|-----------------------|")
 	fmt.Println("| OpenKO Code Generator |")
 	fmt.Println("|-----------------------|")
