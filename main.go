@@ -7,6 +7,7 @@ import (
 	"ko-codegen/templates"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -82,7 +83,10 @@ func generateCpp(validSchemas []jsonschema.Schema) (err error) {
 		template := templates.CppTemplate{}
 		tableName, err := getTableNameFromId(validSchemas[i].Location)
 		template.SetClassName(tableName)
-		template.SetClassDescription(validSchemas[i].Description)
+		template.SetClassDesc(validSchemas[i].Description)
+
+		// always include string since we're always generating a GetTableName func
+		template.AddInclude("string")
 
 		// Generate a static GetTableName() func
 		tblNameDef := templates.MethodDefinition{
@@ -97,10 +101,20 @@ func generateCpp(validSchemas []jsonschema.Schema) (err error) {
 		for key, _ := range validSchemas[i].Properties {
 			// translate the json-schema type to a C++ type
 			// i.e., a number type with a min:max of 0:255 will return uint8_t
-			_type, tErr := identifier.GetType(key, *validSchemas[i].Properties[key])
+			isOptional := !slices.Contains(validSchemas[i].Required, key)
+			_type, tErr := identifier.GetType(key, *validSchemas[i].Properties[key], isOptional)
 			if tErr != nil {
 				err = fmt.Errorf("%s:%s failed to get type for property: %w", tableName, key, tErr)
 				return err
+			}
+
+			if strings.HasSuffix(_type, "_t") {
+				template.AddInclude("cstdint")
+			}
+
+			if strings.HasPrefix(_type, "Nullable") {
+				template.AddInclude("cgHelpers/nullable.h")
+				template.AddUsing("cgHelpers::Nullable")
 			}
 
 			// Setup property definition and add to template

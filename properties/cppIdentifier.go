@@ -5,11 +5,18 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
+const optionalFmt = "Nullable<%s>"
+
 type CppIdentifier struct {
 }
 
-func (this CppIdentifier) GetType(name string, property jsonschema.Schema) (string, error) {
-	_type := ""
+func (this CppIdentifier) GetType(name string, property jsonschema.Schema, isOptional bool) (_type string, err error) {
+	defer func() {
+		// If valid, check if the return type is optional.  If it is, wrap it
+		if err == nil && _type != "" && isOptional {
+			_type = fmt.Sprintf(optionalFmt, _type)
+		}
+	}()
 
 	// Multiple types for a property is some typescript nonsense.  Ignore anything past the first
 	if len(property.Types) > 0 {
