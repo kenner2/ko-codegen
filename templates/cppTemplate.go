@@ -8,8 +8,11 @@ import "fmt"
 // 3. Methods
 // 4. Parent Class
 // 5. Class Description
+// 6. Includes
+// 7. Using statements
 const fileTemplateFmt string = `#pragma once
-
+%[6]s
+%[7]s
 // %[1]s: %[5]s
 class %[1]s %[4]s
 {
@@ -44,19 +47,43 @@ const parentClassFmt string = ": public %[1]s"
 
 const fileNameFmt string = "%[1]s.h"
 
+const includeFmt string = "#include \"%[1]s\"\n"
+
+const usingFmt string = "using %[1]s;\n"
+
 type CppTemplate struct {
 	className   string
 	parentClass string
 	properties  []string
 	methods     []string
+	includes    map[string]bool
 	classDesc   string
+
+	// C++ specific impls
+	usingStatements map[string]bool
+}
+
+/** c++ specific functions **/
+func (this *CppTemplate) AddUsing(s string) {
+	if this.usingStatements == nil {
+		this.usingStatements = make(map[string]bool)
+	}
+	this.usingStatements[s] = true
+}
+
+/** Template interface impl functions **/
+func (this *CppTemplate) AddInclude(s string) {
+	if this.includes == nil {
+		this.includes = make(map[string]bool)
+	}
+	this.includes[s] = true
 }
 
 func (this *CppTemplate) SetClassName(s string) {
 	this.className = s
 }
 
-func (this *CppTemplate) SetClassDescription(s string) {
+func (this *CppTemplate) SetClassDesc(s string) {
 	this.classDesc = s
 }
 
@@ -81,6 +108,16 @@ func (this CppTemplate) Generate() (string, error) {
 		return "", fmt.Errorf("Class name not set")
 	}
 
+	inclStr := ""
+	for k, _ := range this.includes {
+		inclStr += fmt.Sprintf(includeFmt, k)
+	}
+
+	usingStr := ""
+	for k, _ := range this.usingStatements {
+		usingStr += fmt.Sprintf(usingFmt, k)
+	}
+
 	propStr := ""
 	for i := range this.properties {
 		if i > 0 {
@@ -97,7 +134,7 @@ func (this CppTemplate) Generate() (string, error) {
 		methodStr += this.methods[i]
 	}
 
-	return fmt.Sprintf(fileTemplateFmt, this.className, propStr, methodStr, this.parentClass, this.classDesc), nil
+	return fmt.Sprintf(fileTemplateFmt, this.className, propStr, methodStr, this.parentClass, this.classDesc, inclStr, usingStr), nil
 }
 
 func (this CppTemplate) GetFileName() string {

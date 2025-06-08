@@ -6,6 +6,7 @@ type Template interface {
 	SetParentClass(string)
 	AddProperty(def PropertyDefinition)
 	AddMethod(def MethodDefinition)
+	AddInclude(string)
 	Generate() (string, error)
 	GetFileName() string
 }
